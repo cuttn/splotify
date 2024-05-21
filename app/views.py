@@ -9,6 +9,7 @@ import urllib.parse as parsee
 from urllib.request import urlopen
 import time
 import colorsys
+import skimage
 # Create your views here.
 
 def landing(request, id=os.getenv("SPOTIPY_CLIENT_ID"), secret=os.getenv("SPOTIPY_CLIENT_SECRET")):
@@ -28,37 +29,20 @@ def tokenn(request):
 
 def home(request):
     sp = spotipy.Spotify(auth=request.session["TOKEN"])
-    musicshit = []
     items = {}
     i = 0
     while len(items)%50 == 0:
         newshit = sp.current_user_playlists(limit=50, offset=len(items))
         if(len(newshit['items']) != 0):
             for item in newshit['items']:
-                items[fast_colorthief.get_dominant_color()]
+                hue = colorsys.rgb_to_hls(fast_colorthief.get_dominant_color(skimage.io.imread(item["images"][0]["url"])))[0]
+                items[hue] = items.get(hue, []) + [i]
+                i += 1
         else:
             break
+    items = dict(sorted(items.items()))
     
-    for item in items:
-        exists = False
-        try:
-            exists = MusicContainer.objects.filter(spotifyid=item["id"]).exists()
-            if not exists:
-                music = MusicContainer(spotifyid=item["id"], title=item["name"], type=reqType[:-5])
-                music.save()
-            musicshit = musicshit | MusicContainer.objects.filter(spotifyid=item["id"]).values()
-        except:
-            exists = MusicContainer.objects.filter(spotifyid=item[reqType[:-4]]["id"]).exists()
-            if not exists:
-                music = MusicContainer(spotifyid=item[reqType[:-4]]["id"], title=item[reqType[:-4]]["name"], type=reqType[:-4])
-                music.save()
-            musicshit = musicshit | MusicContainer.objects.filter(spotifyid=item[reqType[:-4]]["id"]).values()
-
     context = {
-        "musicshit" : musicshit,
-        "selected" : [eval(i) for i in selected.split("-")[1:-1]],
-        "selectedstr" : selected,
-        "type" : reqType[:4]
     }
     
     browserr = loader.get_template("browser.html")
